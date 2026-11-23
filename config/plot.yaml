@@ -1,0 +1,38 @@
+# Colour-map settings for scripts/plot_map.py.
+# Relative paths are relative to this file.
+
+input: ../examples/synthetic_PL.csv     # x, y, z table (.csv / .txt / .dat / .xlsx)
+output: ../output/synthetic_PL           # file name without extension
+formats: [png, tiff, pdf, svg]
+dpi: 600
+
+# Axis and colour-bar titles. Leave a key out to use the table's header ("Energy (eV)").
+# name and unit accept mathtext: "$V_\mathrm{g}$", unit "cm^{-1}", "\mu m". Units are italic.
+labels:
+  x: {name: Energy, unit: eV}
+  y: {name: Gate Voltage, unit: V}
+  z: {name: PL, unit: counts}
+
+map:
+  cmap: viridis
+  levels: 100              # colour levels
+  z_range: null            # [min, max] to fix the colour range; above = grey cap, below = black cap
+  z_round: null            # e.g. 20 rounds the auto range out to multiples of 20 (991..6271 -> 980..6280)
+  x_range: null            # [min, max]; null = tight to the data
+  y_range: null
+  x_major: null            # major tick step, e.g. 0.02; null = automatic
+  y_major: null            # e.g. 0.5
+  minor_per_major: 1       # minor ticks between major ticks
+  cbar_ticks: 9            # evenly spaced colour-bar labels from min to max
+  cbar_tick_mode: exact    # exact (4 significant figures) | nice (round numbers)
+  cbar_sig_figs: 4
+  rasterize_map: false     # true = smaller PDF/SVG (map as image, text still editable)
+
+style:
+  font:
+    family: Arial          # switch to Helvetica once its files are in fonts/
+    dirs: [../fonts, /mnt/c/Windows/Fonts]
+    size: {title: 22, tick: 18, cbar_tick: 14}
+  map_size: 6.0            # side of the square map area, inches
+  cbar_width: 0.4
+  cbar_gap: 1.0

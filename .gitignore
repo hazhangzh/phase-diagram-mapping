@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Generated figures
+output/
+
+# Real measurement data stays local; only the synthetic example is shared
+examples/*
+!examples/make_synthetic.py
+!examples/synthetic_PL.csv
+config/*.local.yaml
+
+# Font files are licensed and must not be redistributed
+fonts/*
+!fonts/README.md

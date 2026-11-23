@@ -1,0 +1,6 @@
+numpy>=1.22
+matplotlib>=3.8
+pyyaml
+openpyxl      # .xlsx input (optional)
+pytest
+ipykernel     # Jupyter
