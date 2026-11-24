@@ -59,6 +59,35 @@ def test_z_limits():
     assert z_limits(z, MapOptions(z_range=(1000, 5000))) == (1000, 5000)
 
 
+def test_log_scale():
+    from pdm.plot import transform_z
+    z = np.array([[-5.0, 0.0], [10.0, 1000.0]])
+    opts = MapOptions(z_scale="log", log_floor=1)
+    np.testing.assert_allclose(transform_z(z, opts), [[0, 0], [1, 3]])
+    assert z_limits(transform_z(z, opts), opts) == (0, 3)
+    assert z_limits(transform_z(z, opts), MapOptions(z_scale="log", z_range=(10, 100))) == (1, 2)
+
+
+def test_log_map_title_and_ticks():
+    mf = plot_map(read_xyz(SYNTH), opts=MapOptions(z_scale="log"))
+    assert mf.cax.get_title() == "Log(PL)"
+    ticks = [float(t.get_text()) for t in mf.cax.get_yticklabels()]
+    d = read_xyz(SYNTH)
+    assert ticks[0] == pytest.approx(np.log10(d.z.min()), abs=1e-3)
+    assert ticks[-1] == pytest.approx(np.log10(d.z.max()), abs=1e-3)
+    mf2 = plot_map(d, labels={"z_log": r"log$_{10}$ PL"}, opts=MapOptions(z_scale="log"))
+    assert mf2.cax.get_title() == r"log$_{10}$ PL"
+
+
+def test_cli_linear_and_log(tmp_path):
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import plot_map as cli
+    cli.main([str(ROOT / "config" / "plot.yaml"), "--output", str(tmp_path / "m"),
+              "--formats", "png", "--dpi", "40", "--scales", "linear", "log"])
+    assert (tmp_path / "m.png").exists() and (tmp_path / "m_log.png").exists()
+
+
 def test_format_label():
     assert format_label("Energy", "eV") == r"Energy ($\mathit{eV}$)"
     assert format_label("Shift", "cm^{-1}") == r"Shift ($\mathit{cm^{-1}}$)"

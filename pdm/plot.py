@@ -21,7 +21,9 @@ UNDER_COLOR = "#000000"   # black cap: values below the colour range
 class MapOptions:
     cmap: str = "viridis"
     levels: int = 100                 # number of colour levels
-    z_range: tuple | None = None      # manual (min, max); None = data min..max
+    z_scale: str = "linear"           # "linear" or "log" (map shows log10 of z)
+    log_floor: float = 1.0            # log scale: z below this (e.g. <= 0) is drawn at the floor
+    z_range: tuple | None = None      # manual (min, max) in z units (counts), also for log; None = data min..max
     z_round: float | None = None      # round the auto range out to a multiple of this
     x_range: tuple | None = None      # None = tight to the data
     y_range: tuple | None = None
@@ -68,11 +70,24 @@ def format_sig(v: float, n: int = 4) -> str:
     return s[1:] if s.startswith("-0") and float(s) == 0 else s
 
 
+def transform_z(z: np.ndarray, opts: MapOptions) -> np.ndarray:
+    """The values that are colour-mapped: z itself, or log10(z) on the log scale."""
+    if opts.z_scale == "linear":
+        return z
+    if opts.z_scale == "log":
+        return np.log10(np.maximum(z, opts.log_floor))
+    raise ValueError(f"unknown z_scale {opts.z_scale!r} (linear or log)")
+
+
 def z_limits(z: np.ndarray, opts: MapOptions) -> tuple[float, float]:
+    """Colour range for the (already transformed) values z."""
     if opts.z_range is not None:
-        return float(opts.z_range[0]), float(opts.z_range[1])
+        lo, hi = float(opts.z_range[0]), float(opts.z_range[1])
+        if opts.z_scale == "log":
+            lo, hi = np.log10(max(lo, opts.log_floor)), np.log10(max(hi, opts.log_floor))
+        return lo, hi
     lo, hi = float(np.nanmin(z)), float(np.nanmax(z))
-    if opts.z_round:
+    if opts.z_round and opts.z_scale == "linear":
         r = float(opts.z_round)
         lo, hi = np.floor(lo / r) * r, np.ceil(hi / r) * r
     if hi <= lo:
@@ -114,7 +129,8 @@ def draw(mf: MapFigure, data: XYZ, labels: dict | None = None,
     cax.clear()
 
     labels = {**(data.labels or {}), **(labels or {})}
-    x, y, z = np.asarray(data.x), np.asarray(data.y), np.asarray(data.z, dtype=float)
+    x, y = np.asarray(data.x), np.asarray(data.y)
+    z = transform_z(np.asarray(data.z, dtype=float), opts)
     vmin, vmax = z_limits(z, opts)
     bounds = np.linspace(vmin, vmax, opts.levels + 1)
     cmap = make_cmap(opts.cmap)
@@ -166,7 +182,17 @@ def draw(mf: MapFigure, data: XYZ, labels: dict | None = None,
     cb.minorticks_off()
     cax.tick_params(which="both", direction="out", labelsize=st.cbar_tick_size,
                     length=st.major_tick_len, width=st.line_width)
-    cax.set_title(title("z", "z"), fontsize=st.title_size, pad=10)
+    if opts.z_scale == "log":
+        # labels["z_log"] if given, else "Log(<z name>)", e.g. Log(PL)
+        zl = labels.get("z_log")
+        if zl is None:
+            zn = labels.get("z") or Label("z")
+            zn = Label.parse(zn) if isinstance(zn, str) else zn
+            zl = Label(f"Log({zn.name})")
+        ztitle = zl if isinstance(zl, str) else _style.format_label(zl.name, zl.unit)
+    else:
+        ztitle = title("z", "z")
+    cax.set_title(ztitle, fontsize=st.title_size, pad=10)
 
     mf.extra.update(contour=cs, colorbar=cb, vmin=vmin, vmax=vmax)
     return mf

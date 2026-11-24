@@ -4,12 +4,11 @@ Turns a set of spectra measured against a second parameter (gate voltage, field,
 2D colour map in the style of an Origin contour plot.
 
 ```
-raw files ──[Part 1: to do]──► x, y, z table ──[Part 2: done]──► colour map
+raw files ──[Part 1: pdm.build]──► x, y, z table ──[Part 2: pdm.plot]──► colour map
 ```
 
 The 3-column **x, y, z table** is the fixed contract between the two parts. Part 1 (raw
-spectrometer files → table) depends on the project and is not written yet. Part 2 (this code,
-package `pdm`) is shared.
+spectrometer files → table) depends on how a project stores its data; Part 2 is shared.
 
 ## Setup
 
@@ -24,7 +23,43 @@ If `python3 -m venv` fails because `ensurepip` is missing (Debian/Ubuntu without
 `python3-venv`), run `python3 -m venv --without-pip .venv` and then
 `pip --python .venv/bin/python install -r requirements.txt`.
 
-## Plot from the command line
+## Part 1: raw files → x, y, z table
+
+```bash
+.venv/bin/python scripts/build_xyz.py config/my_run.build.local.yaml          # table, then the map
+.venv/bin/python scripts/build_xyz.py config/my_run.build.local.yaml --no-plot
+```
+
+Copy [config/build.yaml](config/build.yaml) to a `*.local.yaml` file (git-ignored) and set the
+paths. The expected raw layout:
+
+```
+<run>/
+├── xvector.txt              x points, one per line (e.g. wavelength in nm)
+└── map/
+    ├── 1_1_-5.00004V.txt    <step index>_<run index>_<y value>V.txt
+    ├── 2_1_-4.98004V.txt    one line per x point; each line may hold several values
+    ├── ...                  (one per CCD row), tab/space/comma separated, no header
+    └── 1_background.txt     other names are skipped and listed
+```
+
+- **x**: from `xvector.txt`; the number of lines in every raw file must match. `x.convert:
+  nm_to_eV` turns wavelength into photon energy (E = 1239.84 / λ).
+- **y**: from the file names (`y.source: filename`), or from a start/end/step file
+  (`y.source: range`), matched to the files in order of step index; the counts must agree.
+- **z**: the CCD-row columns of each line are combined (`raw.combine`: `mean` by default,
+  `sum`, `median` or one column). Optional: `cosmic_ray_sigma` removes cosmic-ray spikes first,
+  `background` subtracts a raw file (combined the same way), `repeats` combines several runs at
+  one step. The background must be a dark spectrum (laser off); check it before use.
+- **Output**: CSV (or `.xlsx`) with a `Name (unit)` header, sorted by y and then x (both
+  ascending), one row per point. Two steps with the same y are an error (e.g. a forward and
+  backward sweep must be split first).
+- Raw data only: no smoothing, no background or cosmic-ray removal unless you turn it on.
+
+Another raw format (e.g. two columns x, z per file) is `raw.format: xz`; a new format goes in
+[pdm/build/readers.py](pdm/build/readers.py).
+
+## Part 2: plot from the command line
 
 ```bash
 .venv/bin/python scripts/plot_map.py config/plot.yaml
@@ -73,6 +108,15 @@ synthetic example is git-ignored. The synthetic table is made by
 
 If ever needed, `z_round: 20` rounds the colour range out to multiples of 20, as Origin does.
 
+### Log scale
+
+`scales: [linear, log]` in the plot config (or `--scales linear log`) draws both maps: the
+linear one as `<output>.*` and the log one as `<output>_log.*`. The log map colours
+log10(z); the colour-bar title is `Log(<z name>)`, e.g. Log(PL), or `labels.z_log`. Values
+below `log_floor` (default 1, e.g. counts ≤ 0 after background subtraction) are drawn at the
+floor. `z_range` is still given in counts. Raw counts carry the detector offset (~1100), which
+squeezes the log map; subtract a dark spectrum to make it informative.
+
 ### Fonts
 
 Fonts are looked up in `fonts/` first, then `/mnt/c/Windows/Fonts` (WSL), then the system.
@@ -107,12 +151,18 @@ See [notebooks/example.ipynb](notebooks/example.ipynb).
 ## Layout
 
 ```
-config/plot.yaml          plot settings (template, points at the synthetic example)
+config/build.yaml         Part 1 settings (template)
+config/plot.yaml          Part 2 plot settings (template, points at the synthetic example)
+config/*.local.yaml       your own configs (git-ignored)
+pdm/build/readers.py      raw text files → one spectrum each (CCD rows combined, x conversion)
+pdm/build/y_sources.py    find files by name pattern, y from names or a start/end/step file
+pdm/build/base.py         build_xyz (sorted grid) and write_table
+scripts/build_xyz.py      Part 1 command line (optionally plots the result)
 pdm/io.py                 read table → regular grid (XYZ), header → labels
 pdm/style.py              fonts, sizes, rcParams, italic-unit labels
 pdm/plot.py               make_figure / draw / plot_map / save
 pdm/live.py               LiveMap for Jupyter
-scripts/plot_map.py       command line
+scripts/plot_map.py       Part 2 command line
 examples/                 synthetic example table and its generator
 fonts/                    font files you supply (git-ignored)
 notebooks/example.ipynb   plotting and live mode
@@ -122,4 +172,5 @@ tests/                    .venv/bin/python -m pytest
 ## Still open
 
 - Helvetica font files (then change `font.family`).
-- Part 1: raw files → x, y, z table (readers per raw format, y values from a start/end/step file).
+- Large maps (hundreds of spectra) give big PDF/SVG files; `rasterize_map: true` keeps them
+  small with the text still editable.

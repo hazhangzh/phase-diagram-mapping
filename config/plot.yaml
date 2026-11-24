@@ -5,6 +5,7 @@ input: ../examples/synthetic_PL.csv     # x, y, z table (.csv / .txt / .dat / .x
 output: ../output/synthetic_PL           # file name without extension
 formats: [png, tiff, pdf, svg]
 dpi: 600
+scales: [linear]                         # colour scales to draw: linear and/or log; log -> <output>_log.*
 
 # Axis and colour-bar titles. Leave a key out to use the table's header ("Energy (eV)").
 # name and unit accept mathtext: "$V_\mathrm{g}$", unit "cm^{-1}", "\mu m". Units are italic.
@@ -12,10 +13,12 @@ labels:
   x: {name: Energy, unit: eV}
   y: {name: Gate Voltage, unit: V}
   z: {name: PL, unit: counts}
+  z_log: Log(PL)           # colour-bar title of the log map (default: Log(<z name>))
 
 map:
   cmap: viridis
   levels: 100              # colour levels
+  log_floor: 1              # log scale: values below this (e.g. <= 0 after background subtraction) drawn at the floor
   z_range: null            # [min, max] to fix the colour range; above = grey cap, below = black cap
   z_round: null            # e.g. 20 rounds the auto range out to multiples of 20 (991..6271 -> 980..6280)
   x_range: null            # [min, max]; null = tight to the data

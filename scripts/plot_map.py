@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.pyplot  # noqa: E402
 
 import yaml  # noqa: E402
 
@@ -34,6 +35,8 @@ def main(argv=None):
     ap.add_argument("--output", help="output name without extension (overrides the config)")
     ap.add_argument("--formats", nargs="+", help="e.g. png pdf")
     ap.add_argument("--dpi", type=int)
+    ap.add_argument("--scales", nargs="+", choices=["linear", "log"],
+                    help="colour scales to draw, e.g. linear log (overrides the config)")
     args = ap.parse_args(argv)
 
     src = Path(args.source)
@@ -64,12 +67,21 @@ def main(argv=None):
     labels = {k: Label(v.get("name", ""), v.get("unit", "")) if isinstance(v, dict) else v
               for k, v in (cfg.get("labels") or {}).items()}
 
+    scales = args.scales or cfg.get("scales") or [(cfg.get("map") or {}).get("z_scale", "linear")]
+    if isinstance(scales, str):
+        scales = [scales]
+
     data = read_xyz(inp)
-    mf = plot_map(data, labels, MapOptions.from_dict(cfg.get("map")), style)
-    for p in save(mf, out, formats):
-        print(p)
-    vmin, vmax = mf.extra["vmin"], mf.extra["vmax"]
-    print(f"grid {len(data.y)} x {len(data.x)}, colour range {vmin:g} .. {vmax:g}")
+    for scale in scales:
+        opts = MapOptions.from_dict({**(cfg.get("map") or {}), "z_scale": scale})
+        mf = plot_map(data, labels, opts, style)
+        name = out if scale == "linear" else out.with_name(f"{out.name}_{scale}")
+        for p in save(mf, name, formats):
+            print(p)
+        vmin, vmax = mf.extra["vmin"], mf.extra["vmax"]
+        unit = " (log10)" if scale == "log" else ""
+        print(f"{scale}: grid {len(data.y)} x {len(data.x)}, colour range {vmin:g} .. {vmax:g}{unit}")
+        matplotlib.pyplot.close(mf.fig)
 
 
 if __name__ == "__main__":

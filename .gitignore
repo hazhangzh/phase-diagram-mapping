@@ -17,3 +17,6 @@ config/*.local.yaml
 # Font files are licensed and must not be redistributed
 fonts/*
 !fonts/README.md
+
+# Windows download tags (copied in with files from Windows)
+*:Zone.Identifier

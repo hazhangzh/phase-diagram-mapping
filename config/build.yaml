@@ -1,0 +1,30 @@
+# Part 1 settings for scripts/build_xyz.py: raw files -> sorted x, y, z table.
+# Copy to <name>.local.yaml (git-ignored) for real data. Relative paths are relative to this file.
+
+raw:
+  folder: ../path/to/run/map          # folder with the raw spectra
+  # File names: <step index>_<run index>_<y value>V.txt, e.g. 12_1_-4.77961V.txt
+  # Regular expression with named groups step, run and y. Other files (background.txt, ...)
+  # are skipped and listed.
+  pattern: '^(?P<step>\d+)_(?P<run>\d+)_(?P<y>[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)V\.txt$'
+  format: z_only        # z_only: z values only, x from x_file | xz: first column x, then z
+  x_file: ../path/to/run/xvector.txt
+  combine: mean         # each line has one value per CCD row: mean | sum | median | column index (0-based)
+  cosmic_ray_sigma: null  # e.g. 6 removes cosmic-ray spikes before combining; null = raw data
+  repeats: mean         # several runs at the same step: mean | sum | first | last
+  background: null      # raw file to subtract from every spectrum, e.g. ../path/to/run/map/1_background.txt
+
+y:
+  source: filename      # filename: y from the file name | range: from a start/end/step file
+  range_file: null      # for source: range. Three numbers, or lines "start -5", "end 5", "step 0.02"
+
+x:
+  convert: nm_to_eV     # null (keep) | nm_to_eV | nm_to_meV
+
+labels:                 # written as the table header; used as plot titles
+  x: Energy (eV)
+  y: Gate Voltage (V)
+  z: PL (counts)
+
+output: ../output/xyz_table.csv   # .csv or .xlsx; rows sorted by y, then x (both ascending)
+plot: plot.yaml                   # optional: plot config for drawing the map right after; null = no plot
