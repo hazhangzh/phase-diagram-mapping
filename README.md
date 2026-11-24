@@ -106,7 +106,8 @@ synthetic example is git-ignored. The synthetic table is made by
 | Fonts | Arial for now; 22 pt titles, 18 pt tick labels, 14 pt colour-bar labels |
 | Shape | square 6 × 6 in map area |
 
-If ever needed, `z_round: 20` rounds the colour range out to multiples of 20, as Origin does.
+`x_range` / `y_range` show only part of the map (e.g. `y_range: [-4, 2]`); the automatic
+colour range then spans the data inside that window. If ever needed, `z_round: 20` rounds the colour range out to multiples of 20, as Origin does.
 
 ### Log scale
 

@@ -95,6 +95,20 @@ def z_limits(z: np.ndarray, opts: MapOptions) -> tuple[float, float]:
     return lo, hi
 
 
+def visible(x, y, z, opts: MapOptions) -> np.ndarray:
+    """The part of z inside x_range / y_range, so the auto colour range fits what is shown."""
+    sx = np.ones(len(x), bool)
+    sy = np.ones(len(y), bool)
+    if opts.x_range:
+        lo, hi = sorted(opts.x_range)
+        sx = (x >= lo) & (x <= hi)
+    if opts.y_range:
+        lo, hi = sorted(opts.y_range)
+        sy = (y >= lo) & (y <= hi)
+    sub = z[np.ix_(sy, sx)]
+    return sub if sub.size else z
+
+
 def make_cmap(name: str):
     return colormaps[name].with_extremes(over=OVER_COLOR, under=UNDER_COLOR, bad="white")
 
@@ -131,7 +145,7 @@ def draw(mf: MapFigure, data: XYZ, labels: dict | None = None,
     labels = {**(data.labels or {}), **(labels or {})}
     x, y = np.asarray(data.x), np.asarray(data.y)
     z = transform_z(np.asarray(data.z, dtype=float), opts)
-    vmin, vmax = z_limits(z, opts)
+    vmin, vmax = z_limits(visible(x, y, z, opts), opts)
     bounds = np.linspace(vmin, vmax, opts.levels + 1)
     cmap = make_cmap(opts.cmap)
 

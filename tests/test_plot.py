@@ -68,6 +68,16 @@ def test_log_scale():
     assert z_limits(transform_z(z, opts), MapOptions(z_scale="log", z_range=(10, 100))) == (1, 2)
 
 
+def test_colour_range_follows_window():
+    d = read_xyz(SYNTH)
+    sel = (d.y >= -1) & (d.y <= 0)
+    mf = plot_map(d, opts=MapOptions(y_range=(-1, 0)))
+    assert mf.ax.get_ylim() == (-1, 0)
+    assert mf.extra["vmax"] == pytest.approx(d.z[sel].max())
+    assert mf.extra["vmin"] == pytest.approx(d.z[sel].min())
+    assert plot_map(d).extra["vmax"] == pytest.approx(d.z.max())
+
+
 def test_log_map_title_and_ticks():
     mf = plot_map(read_xyz(SYNTH), opts=MapOptions(z_scale="log"))
     assert mf.cax.get_title() == "Log(PL)"

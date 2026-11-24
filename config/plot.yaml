@@ -22,7 +22,7 @@ map:
   z_range: null            # [min, max] to fix the colour range; above = grey cap, below = black cap
   z_round: null            # e.g. 20 rounds the auto range out to multiples of 20 (991..6271 -> 980..6280)
   x_range: null            # [min, max]; null = tight to the data
-  y_range: null
+  y_range: null            # e.g. [-4, 2]; the auto colour range then fits the data in this window
   x_major: null            # major tick step, e.g. 0.02; null = automatic
   y_major: null            # e.g. 0.5
   minor_per_major: 1       # minor ticks between major ticks
